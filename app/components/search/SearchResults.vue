@@ -2,6 +2,7 @@
 // Props: pass the entire payload or just data array
 const props = defineProps({
     payload: { type: Object, required: true }, // the JSON you shared
+    searchQuery: { type: String, default: "" }, // search query from parent
 });
 
 const raw = computed(() =>
@@ -9,8 +10,16 @@ const raw = computed(() =>
         ? props.payload.response.data
         : []
 );
-const q = ref("");
+const q = ref(props.searchQuery);
 const sortBy = ref("relevance");
+
+// Watch for changes in search query prop
+watch(
+    () => props.searchQuery,
+    (newQuery) => {
+        q.value = newQuery;
+    }
+);
 const sortOptions = [
     { label: "Relevance", value: "relevance" },
     { label: "Description (A→Z)", value: "description-asc" },
@@ -178,123 +187,145 @@ function addToCart(item) {
 
         <!-- Horizontal Layout with Image Left, Details Center, Actions Right -->
         <div class="space-y-4">
-            <UCard
-                v-for="item in paged"
+            <Transition
+                v-for="(item, index) in paged"
                 :key="item.pc_itempricecodeguid"
-                class="flex flex-row gap-6 items-center p-4"
+                enter-active-class="transition-all duration-300 ease-out"
+                enter-from-class="opacity-0 transform translate-y-2"
+                enter-to-class="opacity-100 transform translate-y-0"
+                :style="{ 'transition-delay': `${index * 50}ms` }"
             >
-                <!-- Image Section - Far Left -->
-                <NuxtLink
-                    :to="`/product/${item.pc_itempricecodeguid}`"
-                    class="shrink-0"
-                >
-                    <div
-                        class="flex overflow-hidden justify-center items-center w-24 h-20 bg-gray-50 rounded-lg transition-colors cursor-pointer hover:bg-gray-100"
+                <UCard class="flex flex-row gap-6 items-center p-4">
+                    <!-- Image Section - Far Left -->
+                    <NuxtLink
+                        :to="`/product/${item.pc_itempricecodeguid}`"
+                        class="shrink-0"
                     >
-                        <img
-                            v-if="item.imageurl"
-                            :src="item.imageurl"
-                            :alt="item.description"
-                            class="object-contain w-full h-full"
-                            @error="item.imageurl = ''"
-                        />
                         <div
-                            v-else
-                            class="flex flex-col gap-1 justify-center items-center text-gray-400"
+                            class="flex overflow-hidden justify-center items-center w-24 h-20 bg-gray-50 rounded-lg transition-colors cursor-pointer hover:bg-gray-100"
                         >
-                            <UIcon name="i-heroicons-photo" class="w-5 h-5" />
-                            <span class="text-xs">No image</span>
+                            <img
+                                v-if="item.imageurl"
+                                :src="item.imageurl"
+                                :alt="item.description"
+                                class="object-contain w-full h-full"
+                                @error="item.imageurl = ''"
+                            />
+                            <div
+                                v-else
+                                class="flex flex-col gap-1 justify-center items-center text-gray-400"
+                            >
+                                <UIcon
+                                    name="i-heroicons-photo"
+                                    class="w-5 h-5"
+                                />
+                                <span class="text-xs">No image</span>
+                            </div>
                         </div>
-                    </div>
-                </NuxtLink>
+                    </NuxtLink>
 
-                <!-- Product Details - Center (takes up remaining space) -->
-                <div class="flex-1 min-w-0">
-                    <div class="flex gap-2 justify-between items-start mb-2">
-                        <NuxtLink
-                            :to="`/product/${item.pc_itempricecodeguid}`"
-                            class="text-lg font-medium transition-colors line-clamp-2 hover:text-blue-600"
+                    <!-- Product Details - Center (takes up remaining space) -->
+                    <div class="flex-1 min-w-0">
+                        <div
+                            class="flex gap-2 justify-between items-start mb-2"
                         >
-                            {{ item.description }}
-                        </NuxtLink>
-                        <UBadge color="gray" variant="subtle">{{
-                            item.uom || "EA"
-                        }}</UBadge>
-                    </div>
+                            <NuxtLink
+                                :to="`/product/${item.pc_itempricecodeguid}`"
+                                class="text-lg font-medium transition-colors line-clamp-2 hover:text-blue-600"
+                            >
+                                {{ item.description }}
+                            </NuxtLink>
+                            <UBadge color="gray" variant="subtle">{{
+                                item.uom || "EA"
+                            }}</UBadge>
+                        </div>
 
-                    <div
-                        class="grid grid-cols-3 gap-4 mb-3 text-sm text-gray-600"
-                    >
-                        <div class="flex gap-1">
-                            <span class="w-12 text-gray-400 shrink-0">MFG#</span
-                            ><span class="truncate">{{ item.mfgpartno }}</span>
-                        </div>
-                        <div class="flex gap-1" v-if="item.customerpartno">
-                            <span class="w-12 text-gray-400 shrink-0"
-                                >Cust#</span
-                            ><span class="truncate">{{
-                                item.customerpartno
-                            }}</span>
-                        </div>
-                        <div class="flex gap-1">
-                            <span class="w-12 text-gray-400 shrink-0">Mfr</span
-                            ><span class="truncate">{{
-                                item.manufacturername
-                            }}</span>
-                        </div>
-                        <div class="flex gap-1">
-                            <span class="w-12 text-gray-400 shrink-0"
-                                >Vendor</span
-                            ><span class="truncate">{{ item.vendorname }}</span>
-                        </div>
-                        <div class="flex gap-1" v-if="item.UNSPSC">
-                            <span class="w-12 text-gray-400 shrink-0"
-                                >UNSPSC</span
-                            ><span class="truncate">{{ item.UNSPSC }}</span>
-                        </div>
-                    </div>
-
-                    <div class="text-lg font-semibold">
-                        {{
-                            item.extendedprice
-                                ? currency(item.extendedprice)
-                                : "Contact for price"
-                        }}
-                    </div>
-                </div>
-
-                <!-- Action Buttons - Far Right -->
-                <div class="flex flex-col gap-2 items-end shrink-0">
-                    <div class="flex gap-2 items-center">
-                        <UButton
-                            size="sm"
-                            icon="i-heroicons-eye"
-                            variant="ghost"
-                            color="gray"
-                            :to="`/product/${item.pc_itempricecodeguid}`"
+                        <div
+                            class="grid grid-cols-3 gap-4 mb-3 text-sm text-gray-600"
                         >
-                            Details
-                        </UButton>
-                        <UButton
-                            size="sm"
-                            icon="i-heroicons-shopping-cart"
-                            @click="addToCart(item)"
-                        >
-                            Add to Cart
-                        </UButton>
+                            <div class="flex gap-1">
+                                <span class="w-12 text-gray-400 shrink-0"
+                                    >MFG#</span
+                                ><span class="truncate">{{
+                                    item.mfgpartno
+                                }}</span>
+                            </div>
+                            <div class="flex gap-1" v-if="item.customerpartno">
+                                <span class="w-12 text-gray-400 shrink-0"
+                                    >Cust#</span
+                                ><span class="truncate">{{
+                                    item.customerpartno
+                                }}</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <span class="w-12 text-gray-400 shrink-0"
+                                    >Mfr</span
+                                ><span class="truncate">{{
+                                    item.manufacturername
+                                }}</span>
+                            </div>
+                            <div class="flex gap-1">
+                                <span class="w-12 text-gray-400 shrink-0"
+                                    >Vendor</span
+                                ><span class="truncate">{{
+                                    item.vendorname
+                                }}</span>
+                            </div>
+                            <div class="flex gap-1" v-if="item.UNSPSC">
+                                <span class="w-12 text-gray-400 shrink-0"
+                                    >UNSPSC</span
+                                ><span class="truncate">{{ item.UNSPSC }}</span>
+                            </div>
+                        </div>
+
+                        <div class="text-lg font-semibold">
+                            {{
+                                item.extendedprice
+                                    ? currency(item.extendedprice)
+                                    : "Contact for price"
+                            }}
+                        </div>
                     </div>
-                </div>
-            </UCard>
+
+                    <!-- Action Buttons - Far Right -->
+                    <div class="flex flex-col gap-2 items-end shrink-0">
+                        <div class="flex gap-2 items-center">
+                            <UButton
+                                size="sm"
+                                icon="i-heroicons-eye"
+                                variant="ghost"
+                                color="gray"
+                                :to="`/product/${item.pc_itempricecodeguid}`"
+                            >
+                                Details
+                            </UButton>
+                            <UButton
+                                size="sm"
+                                icon="i-heroicons-shopping-cart"
+                                @click="addToCart(item)"
+                            >
+                                Add to Cart
+                            </UButton>
+                        </div>
+                    </div>
+                </UCard>
+            </Transition>
         </div>
 
         <!-- Pagination -->
-        <div class="flex justify-center mt-6">
-            <UPagination
-                v-model="page"
-                :page-count="pageCount"
-                :total="filtered.length"
-                :max="7"
-            />
-        </div>
+        <Transition
+            enter-active-class="transition-all duration-300 ease-out"
+            enter-from-class="opacity-0 transform translate-y-2"
+            enter-to-class="opacity-100 transform translate-y-0"
+        >
+            <div v-if="pageCount > 1" class="flex justify-center mt-6">
+                <UPagination
+                    v-model="page"
+                    :page-count="pageCount"
+                    :total="filtered.length"
+                    :max="7"
+                />
+            </div>
+        </Transition>
     </UContainer>
 </template>
