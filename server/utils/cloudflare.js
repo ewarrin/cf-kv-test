@@ -9,9 +9,9 @@ if (!globalThis.__DEV_KV_STORE) {
 }
 
 export async function getCloudflareKV(namespaceId) {
-    // In a real Cloudflare Workers environment, this would use the actual KV binding
+    // In a real Cloudflare Workers/Pages environment, this would use the actual KV binding
     if (typeof globalThis.PRODUCTS_KV !== "undefined") {
-        // In Cloudflare Workers environment
+        // In Cloudflare Workers/Pages environment
         return globalThis.PRODUCTS_KV;
     }
 

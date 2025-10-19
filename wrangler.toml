@@ -4,7 +4,12 @@ compatibility_date = "2024-01-01"
 # Pages configuration
 pages_build_output_dir = "dist"
 
+# KV Namespace binding for Pages
+[[kv_namespaces]]
+binding = "PRODUCTS_KV"
+id = "70e8edb9dc214313be1fdd4bf20bb44d"
+preview_id = "9bd6e2f9bec74b19ad3a04832d7a3558"
+
 # Environment variables
 [vars]
 NODE_ENV = "production"
-KV_NAMESPACE_ID = "70e8edb9dc214313be1fdd4bf20bb44d"
