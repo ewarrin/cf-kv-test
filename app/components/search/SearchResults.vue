@@ -1,15 +1,16 @@
 <script setup>
-// Props: pass the entire payload or just data array
+// Props: search results from API and search query
 const props = defineProps({
-    payload: { type: Object, required: true }, // the JSON you shared
+    searchResults: { type: Object, required: true }, // API response from search endpoint
     searchQuery: { type: String, default: "" }, // search query from parent
 });
 
 const raw = computed(() =>
-    Array.isArray(props.payload?.response?.data)
-        ? props.payload.response.data
+    Array.isArray(props.searchResults?.results)
+        ? props.searchResults.results
         : []
 );
+
 const q = ref(props.searchQuery);
 const sortBy = ref("relevance");
 
@@ -56,54 +57,16 @@ const normalized = computed(() =>
 );
 
 const filtered = computed(() => {
+    // Since the API already handles filtering and sorting, we just need to handle local filters
     let out = normalized.value;
 
-    if (q.value?.trim()) {
-        const terms = q.value.toLowerCase().split(/\s+/).filter(Boolean);
-        out = out
-            .map((item) => ({
-                ...item,
-                _score: terms.reduce(
-                    (acc, t) => acc + (item._haystack.includes(t) ? 1 : 0),
-                    0
-                ),
-            }))
-            .filter((i) => i._score > 0);
-    }
-
+    // Apply local filters (like images only)
     if (onlyWithImages.value) {
         out = out.filter((i) => !!i.imageurl);
     }
 
-    switch (sortBy.value) {
-        case "description-asc":
-            out = [...out].sort((a, b) =>
-                (a.description || "").localeCompare(b.description || "")
-            );
-            break;
-        case "manufacturer-asc":
-            out = [...out].sort((a, b) =>
-                (a.manufacturername || "").localeCompare(
-                    b.manufacturername || ""
-                )
-            );
-            break;
-        case "has-image":
-            out = [...out].sort(
-                (a, b) => Number(!!b.imageurl) - Number(!!a.imageurl)
-            );
-            break;
-        // relevance (default): if we computed _score, sort by it, otherwise leave order
-        default:
-            if (q.value?.trim()) {
-                out = [...out].sort(
-                    (a, b) => (b._score || 0) - (a._score || 0)
-                );
-            }
-    }
-
-    // reset page when filters change
-    page.value = 1;
+    // If we need to re-sort locally (for different sort options), we can do that here
+    // For now, we'll trust the API sorting since it's more efficient
     return out;
 });
 
@@ -175,7 +138,16 @@ function addToCart(item) {
                 >–<strong>{{
                     Math.min(pageStart + pageSize, filtered.length)
                 }}</strong>
-                of <strong>{{ filtered.length }}</strong> items
+                of
+                <strong>{{
+                    searchResults?.totalResults || filtered.length
+                }}</strong>
+                items
+                <span
+                    v-if="searchResults?.cached"
+                    class="ml-2 text-xs text-green-600"
+                    >(cached)</span
+                >
             </p>
             <div class="flex gap-2 items-center">
                 <UBadge v-if="q" color="gray" variant="soft">Filtered</UBadge>

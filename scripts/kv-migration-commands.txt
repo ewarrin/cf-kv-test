@@ -1,0 +1,10 @@
+
+# Run this command to populate your KV store:
+# wrangler kv:key put "products_data" --path="./app/data/oldresults.json" --namespace-id="YOUR_NAMESPACE_ID"
+
+# Or use the Cloudflare API:
+curl -X PUT "https://api.cloudflare.com/client/v4/accounts/YOUR_ACCOUNT_ID/storage/kv/namespaces/YOUR_NAMESPACE_ID/values/products_data" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data-binary @./app/data/oldresults.json
+        

@@ -3,13 +3,10 @@
 const route = useRoute();
 const productId = route.params.id;
 
-// Load the product data directly from the JSON file
-import productDataRaw from "~/data/results.json";
+// Load the product data from the API
+const { data: productData, error } = await $fetch("/api/products.json");
 
-const productData = productDataRaw;
-console.log("Loaded product data:", productData);
-
-if (!productData) {
+if (error || !productData) {
     throw createError({
         statusCode: 500,
         statusMessage: "No product data received",

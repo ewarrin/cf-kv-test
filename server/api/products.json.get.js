@@ -1,12 +1,11 @@
-import { defineEventHandler, createError, useRuntimeConfig } from "h3";
+import { defineEventHandler, createError } from "h3";
+import { useRuntimeConfig } from "#imports";
 import { getCloudflareKV } from "../utils/cloudflare";
 
 export default defineEventHandler(async (event) => {
-    console.log("🚀 Products API called");
     try {
         const config = useRuntimeConfig();
         const kvNamespaceId = config.kvNamespaceId;
-        console.log("🔧 KV Namespace ID:", kvNamespaceId);
 
         if (!kvNamespaceId) {
             throw createError({

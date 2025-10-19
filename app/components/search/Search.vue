@@ -1,23 +1,46 @@
 <script setup>
 import SearchResults from "~/components/search/SearchResults.vue";
-import data from "../../data/results.json";
-
-// Pass the imported data as payload
-const payload = data;
 
 // Search functionality
 const searchQuery = ref("");
 const showResults = ref(false);
+const searchResults = ref(null);
+const isLoading = ref(false);
+const error = ref(null);
 
-const handleSearch = () => {
-    if (searchQuery.value.trim()) {
+const handleSearch = async () => {
+    if (!searchQuery.value.trim()) return;
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+        // Use the search API with KV cache
+        const response = await $fetch("/api/search", {
+            method: "POST",
+            body: {
+                query: searchQuery.value.trim(),
+                page: 1,
+                pageSize: 24,
+                sortBy: "relevance",
+            },
+        });
+
+        searchResults.value = response;
         showResults.value = true;
+    } catch (err) {
+        console.error("Search failed:", err);
+        error.value = "Search failed. Please try again.";
+    } finally {
+        isLoading.value = false;
     }
 };
 
 const clearSearch = () => {
     searchQuery.value = "";
     showResults.value = false;
+    searchResults.value = null;
+    error.value = null;
 };
 </script>
 
@@ -42,9 +65,10 @@ const clearSearch = () => {
                         <UButton
                             color="primary"
                             @click="handleSearch"
-                            :disabled="!searchQuery.trim()"
+                            :disabled="!searchQuery.trim() || isLoading"
+                            :loading="isLoading"
                         >
-                            Search
+                            {{ isLoading ? "Searching..." : "Search" }}
                         </UButton>
                         <UButton
                             v-if="showResults"
@@ -59,6 +83,29 @@ const clearSearch = () => {
             </UContainer>
         </div>
 
+        <!-- Error Message -->
+        <Transition
+            enter-active-class="transition-all duration-500 ease-out"
+            enter-from-class="opacity-0 transform translate-y-4"
+            enter-to-class="opacity-100 transform translate-y-0"
+            leave-active-class="transition-all duration-300 ease-in"
+            leave-from-class="opacity-100 transform translate-y-0"
+            leave-to-class="opacity-0 transform translate-y-4"
+        >
+            <div
+                v-if="error"
+                class="p-4 mx-4 mt-4 bg-red-50 rounded-lg border border-red-200"
+            >
+                <div class="flex items-center">
+                    <UIcon
+                        name="i-heroicons-exclamation-triangle"
+                        class="mr-2 w-5 h-5 text-red-400"
+                    />
+                    <p class="text-red-800">{{ error }}</p>
+                </div>
+            </div>
+        </Transition>
+
         <!-- Search Results -->
         <Transition
             enter-active-class="transition-all duration-500 ease-out"
@@ -68,9 +115,9 @@ const clearSearch = () => {
             leave-from-class="opacity-100 transform translate-y-0"
             leave-to-class="opacity-0 transform translate-y-4"
         >
-            <div v-if="showResults">
+            <div v-if="showResults && searchResults">
                 <SearchResults
-                    :payload="payload"
+                    :search-results="searchResults"
                     :search-query="searchQuery"
                     @add="(line) => console.log('add to cart', line)"
                 />
