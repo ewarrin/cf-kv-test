@@ -8,6 +8,10 @@ if (!globalThis.__DEV_KV_STORE) {
     globalThis.__DEV_KV_STORE = new Map();
 }
 
+// KV cache for better performance
+const kvCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export async function getCloudflareKV(namespaceId) {
     // In a real Cloudflare Workers/Pages environment, this would use the actual KV binding
     if (typeof globalThis.PRODUCTS_KV !== "undefined") {
@@ -21,6 +25,15 @@ export async function getCloudflareKV(namespaceId) {
     const realKV = {
         async get(key) {
             console.log(`🔑 KV GET: ${key}`);
+
+            // Check cache first
+            const cacheKey = `${namespaceId}:${key}`;
+            const cached = kvCache.get(cacheKey);
+            if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+                console.log(`📦 KV GET result: found (cached)`);
+                return cached.value;
+            }
+
             try {
                 const result = execSync(
                     `npx wrangler kv key get "${key}" --namespace-id="${namespaceId}" --remote`,
@@ -29,6 +42,15 @@ export async function getCloudflareKV(namespaceId) {
                 console.log(
                     `📦 KV GET result: ${result ? "found" : "not found"}`
                 );
+
+                // Cache the result
+                if (result) {
+                    kvCache.set(cacheKey, {
+                        value: result,
+                        timestamp: Date.now(),
+                    });
+                }
+
                 return result || null;
             } catch (error) {
                 console.log(`📦 KV GET result: not found`);

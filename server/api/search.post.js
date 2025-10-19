@@ -3,7 +3,13 @@
  * Caches search results in KV storage for better performance
  */
 
-import { defineEventHandler, getMethod, readBody, createError } from "h3";
+import {
+    defineEventHandler,
+    getMethod,
+    readBody,
+    createError,
+    setHeader,
+} from "h3";
 import { useRuntimeConfig } from "#imports";
 import { getCloudflareKV } from "../utils/cloudflare";
 
@@ -35,6 +41,10 @@ export default defineEventHandler(async (event) => {
                 statusMessage: "Search query is required",
             });
         }
+
+        // Set cache headers for better performance
+        setHeader(event, "Cache-Control", "public, max-age=60, s-maxage=300"); // 1min browser, 5min CDN
+        setHeader(event, "ETag", `"search-${query}-${page}-${pageSize}"`);
 
         const kv = await getCloudflareKV(kvNamespaceId);
 

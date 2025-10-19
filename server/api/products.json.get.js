@@ -1,4 +1,4 @@
-import { defineEventHandler, createError } from "h3";
+import { defineEventHandler, createError, setHeader } from "h3";
 import { useRuntimeConfig } from "#imports";
 import { getCloudflareKV } from "../utils/cloudflare";
 
@@ -13,6 +13,10 @@ export default defineEventHandler(async (event) => {
                 statusMessage: "KV namespace not configured",
             });
         }
+
+        // Set cache headers for better performance
+        setHeader(event, "Cache-Control", "public, max-age=300, s-maxage=3600"); // 5min browser, 1hr CDN
+        setHeader(event, "ETag", `"products-${Date.now()}"`);
 
         // Get KV namespace
         const kv = await getCloudflareKV(kvNamespaceId);
